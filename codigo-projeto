@@ -1,0 +1,126 @@
+#define forcesensor A1
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(32, 16, 2);
+
+int botaodesc = 11;
+
+int botaosobe = 10;
+
+int forcereading;
+
+int ledVerd = 12;
+
+int ledVerm = 13;
+
+
+int m1 = 6; 
+
+int m2 = 2; 
+
+int estado_botaodesc = 0;
+
+int estado_botaosobe = 0;
+
+int sensormovimento = 4;
+
+int LeituraSensor;
+
+void setup() {
+
+
+// 
+
+    pinMode(sensormovimento, INPUT);
+  
+    pinMode(ledVerd, OUTPUT);
+
+    pinMode(ledVerm, OUTPUT);
+
+    pinMode(botaodesc, INPUT);
+
+    pinMode(botaosobe, INPUT);
+
+    pinMode(m1, OUTPUT);
+
+    pinMode(m2, OUTPUT);
+
+    Serial.begin(9600);
+  
+    lcd.begin(16, 2);
+    lcd.init();
+    lcd.backlight();
+    lcd.leftToRight();
+  
+}
+
+
+void loop() {
+
+    estado_botaodesc = digitalRead(botaodesc);
+    estado_botaosobe = digitalRead(botaosobe);
+    forcereading = analogRead(forcesensor);
+    Serial.println(forcereading);
+    LeituraSensor = digitalRead(sensormovimento);
+    
+    // Checagem de parada de emergência sempre, 
+    //independente dos botões
+  
+    if (LeituraSensor == HIGH) {
+        lcd.clear();
+        lcd.setCursor(4, 0);
+        lcd.print("Parada");
+        lcd.setCursor(3, 1);
+        lcd.print("Emergencial");
+        digitalWrite(m1, LOW); 
+        digitalWrite(m2, LOW);
+        digitalWrite(ledVerd, LOW);  
+        digitalWrite(ledVerm, HIGH);
+        delay(2000);
+        return;  // Impede que o resto do loop continue
+    }
+    
+    // Caso não tenha emergência, continue a operação normal
+    if (forcereading == 0) {
+        digitalWrite(m1, LOW); 
+        digitalWrite(m2, LOW);
+        lcd.setCursor(4, 0);
+        lcd.print("Coloque");
+        lcd.setCursor(3, 1);
+        lcd.print("O Material");
+    } else if (forcereading <= 856) {
+        lcd.clear();
+        lcd.setCursor(0, 1);
+        lcd.print("Peso adequado");
+        lcd.setCursor(1, 0);
+        lcd.print(forcereading);
+        delay(2000);
+        
+        if (estado_botaosobe == HIGH) {
+            digitalWrite(ledVerd, HIGH);  
+            digitalWrite(ledVerm, LOW);
+            digitalWrite(m2, LOW); 
+            digitalWrite(m1, HIGH);
+            delay(5000);
+            digitalWrite(m1, LOW);
+        } else if (estado_botaodesc == HIGH) {
+            digitalWrite(ledVerd, HIGH);  
+            digitalWrite(ledVerm, LOW);
+            digitalWrite(m2, HIGH); 
+            digitalWrite(m1, LOW);
+            delay(5000);
+            digitalWrite(m2, LOW); 
+        }
+    } else if (forcereading > 856) {
+        lcd.setCursor(0, 1);
+        lcd.print("Peso excessivo!");
+        lcd.setCursor(1, 0);
+        lcd.print(forcereading);
+        digitalWrite(ledVerd, LOW);  
+        digitalWrite(ledVerm, HIGH);
+        digitalWrite(m2, LOW); 
+        digitalWrite(m1, LOW);
+        delay(5000);
+    }
+}
+
